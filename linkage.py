@@ -37,13 +37,21 @@ class Linkage():
 
     def run_linkage(self):
         # k-mean initiation
+        pop_list = list(self.clusters[i] for i in self.k_init)
+        for k_c in sorted(self.k_init, reverse=True):
+            del self.clusters[k_c]
         for i, k_c in enumerate(self.k_init):
-            pop_index1 = k_c[0]
-            pop_index2 = k_c[1]
-            new_cluster = self.c_history[pop_index1] + self.c_history[pop_index2]
-            c1 = self.clusters.pop(pop_index1 - 2 * i)[0]
-            c2 = self.clusters.pop(pop_index2 - 2 * i - 1)[0]
-            dist = average_distance(c1, c2)
+            global_index1 = k_c
+            c1 = pop_list[i][0]
+            min_dist = 1e10
+            for j, d in enumerate(self.clusters):
+                dist = average_distance(d[0], c1)
+                if dist < min_dist:
+                    pop_index2 = j
+                    global_index2 = d[1]
+                    min_dist = dist
+            c2 = self.clusters.pop(pop_index2)[0]        
+            new_cluster = c1 + c2
             self.clusters.append((new_cluster, len(self.c_history)))
             self.c_history.append(new_cluster)
             self.distance[len(self.c_history) - 1] = {}
@@ -53,9 +61,9 @@ class Linkage():
                 self.distance[len(self.c_history) - 1][global_index] = dist
                 self.distance[global_index][len(self.c_history) - 1] = dist
             # log the merge information into linkage matrix
-            self.linkage_matrix.append([pop_index1, pop_index2, dist, len(c1) + len(c2)])
-
-
+            #print(global_index1, global_index2)
+            self.linkage_matrix.append([global_index1, global_index2, min_dist, len(c1) + len(c2)])
+            
         flag = True
         while flag:
             #print(len(self.clusters))
