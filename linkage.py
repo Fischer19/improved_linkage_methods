@@ -8,7 +8,7 @@ def average_distance(set1, set2):
     for i in set1:
         for j in set2:
             dist += np.linalg.norm(i - j)
-    return dist / (len(set1) + len(set2))
+    return dist / (len(set1) * len(set2))
 
 class Linkage():
     def __init__(self, data, method = "Average"):
@@ -18,14 +18,24 @@ class Linkage():
         self.method = method
         self.index = data.shape[0]
         self.linkage_matrix = []
+        self.distance = {}
 
         for i, item in enumerate(data):
             self.clusters.append(([item], i))
             self.c_history.append([item])
+            self.distance[i] = {}
+            
+        for i in range(len(self.clusters)):
+            for j in range(len(self.clusters)):
+                c1 = self.clusters[i][0]
+                c2 = self.clusters[j][0]
+                dist = average_distance(c1, c2)
+                self.distance[i][j] = dist
 
     def run_linkage(self):
         flag = True
         while flag:
+            #print(len(self.clusters))
             min_dist = 1e10
             c1_index = 0
             c2_index = 0
@@ -36,12 +46,14 @@ class Linkage():
                 for j in range(i+1, len(self.clusters)):
                     c1 = self.clusters[i][0]
                     c2 = self.clusters[j][0]
+                    c1_global_index = self.clusters[i][1]
+                    c2_global_index = self.clusters[j][1]
                     #print(c1, c2)
-                    dist = average_distance(c1, c2)
+                    dist = self.distance[c1_global_index][c2_global_index]
                     if dist < min_dist:
                         min_dist = dist
-                        c1_index = self.clusters[i][1]
-                        c2_index = self.clusters[j][1]
+                        c1_index = c1_global_index
+                        c2_index = c2_global_index
                         pop_index1 = i
                         pop_index2 = j
             # create new cluster
@@ -50,6 +62,12 @@ class Linkage():
             c2 = self.clusters.pop(pop_index2 - 1)[0]
             self.clusters.append((new_cluster, len(self.c_history)))
             self.c_history.append(new_cluster)
+            self.distance[len(self.c_history) - 1] = {}
+            for i in range(len(self.clusters)):
+                global_index = self.clusters[i][1]
+                dist = average_distance(new_cluster, self.clusters[i][0])
+                self.distance[len(self.c_history) - 1][global_index] = dist
+                self.distance[global_index][len(self.c_history) - 1] = dist
             # log the merge information into linkage matrix
             self.linkage_matrix.append([c1_index, c2_index, min_dist, len(c1) + len(c2)])
             if len(self.clusters) == 1:
